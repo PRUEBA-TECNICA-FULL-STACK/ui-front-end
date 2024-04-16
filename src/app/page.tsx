@@ -8,32 +8,30 @@ import { useEffect, useState } from "react";
 import axios from "@/utils/axios";
 import Filter from "@/components/Filter";
 export default function Home() {
-  const [movies, setMovies] = useState<Movie[]>([]);
-  const [copyMovies, setCopyMovies] = useState<Movie[]>([]);
+  const [movies, setMovies] = useState<Movie[] | null>([]);
+  //const [savedMovies, setSavedMovies] = useState<Movie[] | null>([]);
+  const [copyMovies, setCopyMovies] = useState<Movie[] | null>([]);
   const [search, setSearch] = useState("");
   const [menu, setMenu] = useState("");
-  const [status, setStatus] = useState<boolean| null>(null);
-  const [years,setYears]=useState<number[]>([]);
-  const [copyYears,setCopyYears]=useState<number[]>([]);
+  const [status, setStatus] = useState<boolean | null>(null);
+  const [years, setYears] = useState<number[]>([]);
+  const [copyYears, setCopyYears] = useState<number[]>([]);
   useEffect(() => {
-    axios.get('?apikey=731e41f&s=harry potter&type=movie&page=1-100')
+    axios.defaults.baseURL = process.env.NEXT_PUBLIC_API_APP;
+    axios.get('api/v1/movies')
       .then(response => {
-        const newMovies: Movie[] = response.data.Search.map((movie: any) => ({
-          id: movie.id,
-          Title: movie.Title,
-          Year: movie.Year,
-          Poster: movie.Poster,
-          Type: movie.Type,
-          imdbID: movie.imdbID,
-        }));
-        // Update movies state with the newMovies array
-        setMovies(newMovies);
-        setCopyMovies(newMovies);
-        const arrYears:number[]=response.data.Search.map((movie:any)=>movie.Year);
+        if (response.data.Response === "False") {
+          return;
+        }
+        const newMovies = getMovies(response.data.data);
+        setMovies(newMovies.length > 0 ? newMovies : null);
+        setCopyMovies(newMovies.length > 0 ? newMovies : []);
+        const arrYears: number[] = response.data.data.map((movie: any) => movie.Year);
         setCopyYears(arrYears);
         setYears(arrYears);
-        
-        
+
+
+
       })
       .catch(error => {
         console.log(error);
@@ -42,19 +40,71 @@ export default function Home() {
 
   useEffect(() => {
     setMovies([]);
-    const resultMovies = copyMovies.filter((movie: Movie) => {
+    const resultMovies = copyMovies?.filter((movie: Movie) => {
       return movie.Title.toLowerCase().includes(search.toLowerCase());
     });
-    setMovies(resultMovies);
+    setMovies(resultMovies ? resultMovies : null);
   }, [search]);
-  function update() {
 
+  function onPush() {
+
+
+
+    axios.defaults.baseURL = process.env.NEXT_PUBLIC_API_APP;
+    movies?.forEach(movie => {
+      axios.post('api/v1/movies', movie)
+        .then(response => {
+          const newMovie = getMovies(response.data.data);
+          
+          setMovies(prevMovies => {
+            if (prevMovies) { 
+              return prevMovies.map(movie => {
+                
+                if (movie.imdbID === newMovie[0].imdbID) {
+                  
+                  movie.id = newMovie[0].id;
+                }
+                return movie;
+              });
+            } else {
+              return prevMovies; 
+            }
+          });
+
+        })
+        .catch(error => {
+          console.log(error);
+        }).
+        finally(() => {
+          console.log(movies)
+        });
+    });
   }
-  function open(){
-    setMenu(menu=='hidden' ? '' : 'hidden');
+  function onPull() {
+    axios.defaults.baseURL = process.env.NEXT_PUBLIC_OMDBAPI;
+    axios.get('?apikey=731e41f&s=harry potter&type=movie')
+      .then(response => {
+        if (response.data.Response === "False") {
+          return;
+        }
+        setMovies(getMovies(response.data.Search));
+        setCopyMovies(getMovies(response.data.Search));
+      })
   }
-  function openFilter(){
-    setStatus(status==true ? false : true);
+
+  function openFilter() {
+    setStatus(status == true ? false : true);
+  }
+  function getMovies(data: any) {
+    const newMovies: Movie[] = data.map((movie: any) => ({
+      id: movie.id,
+      Title: movie.Title,
+      Year: movie.Year,
+      Poster: movie.Poster,
+      Type: movie.Type,
+      imdbID: movie.imdbID,
+    }));
+    return newMovies;
   }
   return (
     <>
@@ -77,16 +127,22 @@ export default function Home() {
                 </form>
               </div>
               <div className="flex flex-col items-stretch justify-end flex-shrink-0 w-full space-y-2 md:w-auto md:flex-row md:space-y-0 md:items-center md:space-x-3">
-                <button type="button" className="flex items-center justify-center px-4 py-2 text-sm font-medium text-white rounded-lg bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 focus:outline-none dark:focus:ring-primary-800">
+                <button onClick={onPush} type="button" className="flex items-center justify-center px-4 py-2 text-sm font-medium text-white rounded-lg bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 focus:outline-none dark:focus:ring-primary-800">
                   <svg className="h-3.5 w-3.5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                     <path clipRule="evenodd" fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" />
                   </svg>
-                  Fech now
+                  Guardar en Base de datos
+                </button>
+                <button onClick={onPull} type="button" className="flex items-center justify-center px-4 py-2 text-sm font-medium text-white rounded-lg bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 focus:outline-none dark:focus:ring-primary-800">
+                  <svg className="h-3.5 w-3.5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path clipRule="evenodd" fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" />
+                  </svg>
+                  Obtener datos del Imdb
                 </button>
 
 
 
-                
+
               </div>
             </div>
           </div>
@@ -95,18 +151,26 @@ export default function Home() {
       <div className="flex flex-wrap mx-auto w-full p-2">
 
         {
-          movies.map((movie, index) => {
-            return (
+          movies?.map((movie, index) => {
+            if (movie.imdbID) {
+              return (
 
-              <Card key={index} movie={movie} />
-            )
+
+                <Card key={index} movie={movie} />
+
+
+
+
+
+              );
+            }
           })
         }
 
       </div>
 
       <div data-dial-init className="fixed bottom-6 end-6 group">
-        
+
         <button type="button" data-dial-toggle="speed-dial-menu-text-outside-button-square" onClick={openFilter} aria-controls="speed-dial-menu-text-outside-button-square" aria-expanded="false" className="flex items-center justify-center text-white bg-blue-700 rounded-full w-14 h-14 hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 focus:outline-none dark:focus:ring-blue-800">
           <svg className="w-5 h-5 transition-transform group-hover:rotate-45" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 18 18">
             <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 1v16M1 9h16" />
