@@ -7,6 +7,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import axios from "@/utils/axios";
 import Filter from "@/components/Filter";
+import apiFilter from "@/utils/apiFilter";
+
 export default function Home() {
   const [movies, setMovies] = useState<Movie[] | null>([]);
   //const [savedMovies, setSavedMovies] = useState<Movie[] | null>([]);
@@ -28,6 +30,7 @@ export default function Home() {
         setMovies(newMovies.length > 0 ? newMovies : null);
         setCopyMovies(newMovies.length > 0 ? newMovies : []);
         const arrYears: number[] = response.data.data.map((movie: any) => movie.Year);
+        
         setCopyYears(arrYears);
         setYears(arrYears);
 
@@ -35,16 +38,23 @@ export default function Home() {
 
       })
       .catch(error => {
-        console.log(error);
+        console.error(error);
       });
   }, []);
 
   useEffect(() => {
     setMovies([]);
-    const resultMovies = copyMovies?.filter((movie: Movie) => {
-      return movie.Title.toLowerCase().includes(search.toLowerCase());
-    });
-    setMovies(resultMovies ? resultMovies : null);
+    if(copyMovies){
+
+      apiFilter.byTitles(copyMovies,search).then((resultMovies: Movie[] | null) => {
+        setMovies(resultMovies);
+      }).catch((error) => {
+        console.log(error);
+        setMovies(copyMovies);
+      })
+      
+    }
+    
   }, [search]);
 
   function onPush() {
@@ -123,15 +133,23 @@ export default function Home() {
     }));
     return newMovies;
   }
+  function resultFilMovies(resultMovies: Movie[]) {
+    setMovies(resultMovies);
+  }
+  function updateMovie(movieUpdeted: Movie){
+    copyMovies?.map((movie: Movie) => {
+      movie.id === movieUpdeted.id ? movie = movieUpdeted : movie;
+    });
+  }
   return (
     <>
-      <section className="sticky top-0 bg-gray-50 dark:bg-gray-900 h-[80px] w-full flex  items-center z-[9999] ">
+      <section className="sticky top-0 bg-gray-50 dark:bg-gray-900 sm:h-[80px] w-full flex  items-center z-[9999] ">
         <div className=" px-4 mx-auto lg:px-12 w-full">
 
           <div className="relative bg-white shadow-md dark:bg-gray-800 sm:rounded-lg">
             <div className="flex flex-col items-center justify-between p-4 space-y-3 md:flex-row md:space-y-0 md:space-x-4">
               <div className="w-full md:w-1/2">
-                <form className="flex items-center">
+                <form className="flex items-center" onSubmit={(e) => e.preventDefault()}>
                   <label htmlFor="simple-search" className="sr-only">Search</label>
                   <div className="relative w-full">
                     <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
@@ -165,7 +183,8 @@ export default function Home() {
           </div>
         </div>
       </section>
-      <div className="flex flex-wrap mx-auto w-full p-2">
+      
+      <ul className=" mx-auto w-full p-2">
 
         {
           movies?.map((movie, index) => {
@@ -173,7 +192,7 @@ export default function Home() {
               return (
 
 
-                <Card key={index} movie={movie} />
+                <Card key={index} movie={movie} updateMovie={updateMovie} />
 
 
 
@@ -184,7 +203,7 @@ export default function Home() {
           })
         }
 
-      </div>
+      </ul>
 
       <div data-dial-init className="fixed bottom-6 end-6 group">
 
@@ -195,7 +214,7 @@ export default function Home() {
           <span className="sr-only">Open actions menu</span>
         </button>
       </div>
-      <Filter status={status} years={years} />
+      <Filter status={status} years={years} movies={movies}  resultFilMovies={resultFilMovies} copyMovies={copyMovies}/>
     </>
   );
 }
