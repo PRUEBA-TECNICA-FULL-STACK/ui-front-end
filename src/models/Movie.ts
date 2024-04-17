@@ -7,6 +7,6 @@ export default interface Movie {
     imdbID: string;
     Poster: string;
     Ratings: number;
-    Type: string;
+    
 }
   

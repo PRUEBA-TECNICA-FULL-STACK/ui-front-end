@@ -24,6 +24,7 @@ export default function Home() {
           return;
         }
         const newMovies = getMovies(response.data.data);
+        console.log(newMovies)
         setMovies(newMovies.length > 0 ? newMovies : null);
         setCopyMovies(newMovies.length > 0 ? newMovies : []);
         const arrYears: number[] = response.data.data.map((movie: any) => movie.Year);
@@ -63,6 +64,22 @@ export default function Home() {
                 if (movie.imdbID === newMovie[0].imdbID) {
                   
                   movie.id = newMovie[0].id;
+                  movie.Ratings= newMovie[0].Ratings;
+                }
+                return movie;
+              });
+            } else {
+              return prevMovies; 
+            }
+          });
+          setCopyMovies(prevMovies => {
+            if (prevMovies) { 
+              return prevMovies.map(movie => {
+                
+                if (movie.imdbID === newMovie[0].imdbID) {
+                  
+                  movie.id = newMovie[0].id;
+                  movie.Ratings= newMovie[0].Ratings;
                 }
                 return movie;
               });
@@ -101,7 +118,7 @@ export default function Home() {
       Title: movie.Title,
       Year: movie.Year,
       Poster: movie.Poster,
-      Type: movie.Type,
+      Ratings: movie.Ratings,
       imdbID: movie.imdbID,
     }));
     return newMovies;
