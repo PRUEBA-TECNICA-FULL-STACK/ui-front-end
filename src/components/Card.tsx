@@ -1,38 +1,52 @@
+'use client'
+
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import Movie from "@/models/Movie";
 import axios from "@/utils/axios";
 
+import { useRouter } from 'next/navigation'
 import { useEffect, useState } from "react";
 
-function Card({ movie,updateMovie }: { movie: Movie,updateMovie:any }) {
+function Card({ movie,updateMovie  }: { movie: Movie,updateMovie:any }) {
     const norEst = [1, 2, 3, 4, 5];
     const [ratings, setRatings] = useState(0);
     const [userEst, setUserEst] = useState<number>(0);
+    const {user } = useCurrentUser();
+  
+    const router = useRouter();
     useEffect(() => {
+        axios.defaults.baseURL = process.env.NEXT_PUBLIC_API_APP;
         axios.get(`/api/v1/ratings/?movie_id=${movie.id}&user_id= 1`).then(res => {
             if(res.data.Response!="False"){
                 setUserEst(dicimal(res.data.data.Ratings));
                 setRatings(dicimal(res.data.data.Rating));
             }
         }).catch(err => {
-            console.log(err);
+            //console.log(err);
         })
         
     },[])
     function setRatingUser(e:number) {
-
-        axios.post('/api/v1/ratings', { movie_id: movie.id, rating: e,user_id: 1 }).then(res => {
-            if(res.data.Response!="False"){
-                setRatings(dicimal(res.data.Ratings));
-                movie.Ratings=dicimal(res.data.Ratings);
-                updateMovie(movie);
+            if(!user){
+                router.push('/login');
+                return;
             }
-        }).catch(err => {
-            console.log(err);
-        })
-        setUserEst(e);
+    
+            axios.defaults.baseURL = process.env.NEXT_PUBLIC_API_APP;
+            axios.post('/api/v1/ratings', { movie_id: movie.id, rating: e,user_id: user.id }).then(res => {
+                if(res.data.Response!="False"){
+                    setRatings(dicimal(res.data.Ratings));
+                    movie.Ratings=dicimal(res.data.Ratings);
+                    updateMovie(movie);
+                }
+            }).catch(err => {
+                //console.log(err);
+            })
+            setUserEst(e);
+        
     }
     function dicimal(e:any) {
-        console.log(e);
+        //console.log(e);
         return parseFloat(parseFloat(e).toFixed(2));
         
     }

@@ -1,5 +1,6 @@
 export default interface User {
   email: string;
-  password: string;
+  id: number;
+  accessToken:string;
   name: string;
 }

@@ -8,6 +8,9 @@ import { useEffect, useState } from "react";
 import axios from "@/utils/axios";
 import Filter from "@/components/Filter";
 import apiFilter from "@/utils/apiFilter";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useLogout } from "@/hooks/useLogout";
+
 
 export default function Home() {
   const [movies, setMovies] = useState<Movie[] | null>([]);
@@ -18,6 +21,8 @@ export default function Home() {
   const [status, setStatus] = useState<boolean | null>(null);
   const [years, setYears] = useState<number[]>([]);
   const [copyYears, setCopyYears] = useState<number[]>([]);
+  const { user } = useCurrentUser();
+  const { logout } = useLogout();
   useEffect(() => {
     axios.defaults.baseURL = process.env.NEXT_PUBLIC_API_APP;
     axios.get('api/v1/movies')
@@ -26,11 +31,11 @@ export default function Home() {
           return;
         }
         const newMovies = getMovies(response.data.data);
-        console.log(newMovies)
+        
         setMovies(newMovies.length > 0 ? newMovies : null);
         setCopyMovies(newMovies.length > 0 ? newMovies : []);
         const arrYears: number[] = response.data.data.map((movie: any) => movie.Year);
-        
+
         setCopyYears(arrYears);
         setYears(arrYears);
 
@@ -44,17 +49,17 @@ export default function Home() {
 
   useEffect(() => {
     setMovies([]);
-    if(copyMovies){
+    if (copyMovies) {
 
-      apiFilter.byTitles(copyMovies,search).then((resultMovies: Movie[] | null) => {
+      apiFilter.byTitles(copyMovies, search).then((resultMovies: Movie[] | null) => {
         setMovies(resultMovies);
       }).catch((error) => {
         console.log(error);
         setMovies(copyMovies);
       })
-      
+
     }
-    
+
   }, [search]);
 
   function onPush() {
@@ -66,44 +71,41 @@ export default function Home() {
       axios.post('api/v1/movies', movie)
         .then(response => {
           const newMovie = getMovies(response.data.data);
-          
+
           setMovies(prevMovies => {
-            if (prevMovies) { 
+            if (prevMovies) {
               return prevMovies.map(movie => {
-                
+
                 if (movie.imdbID === newMovie[0].imdbID) {
-                  
+
                   movie.id = newMovie[0].id;
-                  movie.Ratings= newMovie[0].Ratings;
+                  movie.Ratings = newMovie[0].Ratings;
                 }
                 return movie;
               });
             } else {
-              return prevMovies; 
+              return prevMovies;
             }
           });
           setCopyMovies(prevMovies => {
-            if (prevMovies) { 
+            if (prevMovies) {
               return prevMovies.map(movie => {
-                
+
                 if (movie.imdbID === newMovie[0].imdbID) {
-                  
+
                   movie.id = newMovie[0].id;
-                  movie.Ratings= newMovie[0].Ratings;
+                  movie.Ratings = newMovie[0].Ratings;
                 }
                 return movie;
               });
             } else {
-              return prevMovies; 
+              return prevMovies;
             }
           });
 
         })
         .catch(error => {
           console.log(error);
-        }).
-        finally(() => {
-          console.log(movies)
         });
     });
   }
@@ -136,7 +138,7 @@ export default function Home() {
   function resultFilMovies(resultMovies: Movie[]) {
     setMovies(resultMovies);
   }
-  function updateMovie(movieUpdeted: Movie){
+  function updateMovie(movieUpdeted: Movie) {
     copyMovies?.map((movie: Movie) => {
       movie.id === movieUpdeted.id ? movie = movieUpdeted : movie;
     });
@@ -157,25 +159,47 @@ export default function Home() {
                         <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
                       </svg>
                     </div>
-                    <input type="text" id="simple-search" className="block w-full p-2 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" placeholder="Search" onKeyUp={(e) => setSearch((e.target as HTMLInputElement).value)} required />
+                    <input type="text" id="simple-search" className="block w-full p-2 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" placeholder={'Buscador aqui ' + (user?.name ? user?.name : '')} onKeyUp={(e) => setSearch((e.target as HTMLInputElement).value)} required />
                   </div>
                 </form>
               </div>
               <div className="flex flex-col items-stretch justify-end flex-shrink-0 w-full space-y-2 md:w-auto md:flex-row md:space-y-0 md:items-center md:space-x-3">
-                <button onClick={onPush} type="button" className="flex items-center justify-center px-4 py-2 text-sm font-medium text-white rounded-lg bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 focus:outline-none dark:focus:ring-primary-800">
+                <button onClick={onPush} type="button" className="flex items-center justify-center px-4 py-2 text-sm font-medium  dark:text-white rounded-lg bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 focus:outline-none dark:focus:ring-primary-800">
                   <svg className="h-3.5 w-3.5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                     <path clipRule="evenodd" fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" />
                   </svg>
                   Guardar en Base de datos
                 </button>
-                <button onClick={onPull} type="button" className="flex items-center justify-center px-4 py-2 text-sm font-medium text-white rounded-lg bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 focus:outline-none dark:focus:ring-primary-800">
+                <button onClick={onPull} type="button" className="flex items-center justify-center px-4 py-2 text-sm font-medium dark:text-white rounded-lg bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 focus:outline-none dark:focus:ring-primary-800">
                   <svg className="h-3.5 w-3.5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                     <path clipRule="evenodd" fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" />
                   </svg>
                   Obtener datos del Imdb
                 </button>
+                {
+                  user ?
+                  
 
+                  <button onClick={logout} type="button" className="flex items-center justify-center px-4 py-2 text-sm font-medium dark:text-white rounded-lg bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 focus:outline-none dark:focus:ring-primary-800">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 mr-2">
+                        <path fillRule="evenodd" d="M18.685 19.097A9.723 9.723 0 0 0 21.75 12c0-5.385-4.365-9.75-9.75-9.75S2.25 6.615 2.25 12a9.723 9.723 0 0 0 3.065 7.097A9.716 9.716 0 0 0 12 21.75a9.716 9.716 0 0 0 6.685-2.653Zm-12.54-1.285A7.486 7.486 0 0 1 12 15a7.486 7.486 0 0 1 5.855 2.812A8.224 8.224 0 0 1 12 20.25a8.224 8.224 0 0 1-5.855-2.438ZM15.75 9a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" clipRule="evenodd" />
+                      </svg>
 
+                      Logout
+                    </button>
+                    :
+                  <Link href={"/login"} type="button" className="flex items-center justify-center px-4 py-2 text-sm font-medium dark:text-white rounded-lg bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 focus:outline-none dark:focus:ring-primary-800">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 mr-2">
+                        <path fillRule="evenodd" d="M18.685 19.097A9.723 9.723 0 0 0 21.75 12c0-5.385-4.365-9.75-9.75-9.75S2.25 6.615 2.25 12a9.723 9.723 0 0 0 3.065 7.097A9.716 9.716 0 0 0 12 21.75a9.716 9.716 0 0 0 6.685-2.653Zm-12.54-1.285A7.486 7.486 0 0 1 12 15a7.486 7.486 0 0 1 5.855 2.812A8.224 8.224 0 0 1 12 20.25a8.224 8.224 0 0 1-5.855-2.438ZM15.75 9a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" clipRule="evenodd" />
+                      </svg>
+
+                      Login
+                    </Link>
+                    
+                    
+                    
+
+                }
 
 
               </div>
@@ -183,7 +207,7 @@ export default function Home() {
           </div>
         </div>
       </section>
-      
+
       <ul className=" mx-auto w-full p-2">
 
         {
@@ -214,7 +238,7 @@ export default function Home() {
           <span className="sr-only">Open actions menu</span>
         </button>
       </div>
-      <Filter status={status} years={years} movies={movies}  resultFilMovies={resultFilMovies} copyMovies={copyMovies}/>
+      <Filter status={status} years={years} movies={movies} resultFilMovies={resultFilMovies} copyMovies={copyMovies} />
     </>
   );
 }
